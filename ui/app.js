@@ -4,7 +4,7 @@
 
 const RPC_URL = '/transmission/rpc';
 const BASE_DIR = '/downloads';
-const POLL_MS = 2000;
+let pollMs = (() => { try { const r = Number(localStorage.getItem('ug-refresh')); return r >= 1000 ? r : 2000; } catch { return 2000; } })();
 
 /* ---------- icons (24px line icons) ---------- */
 const ICONS = {
@@ -25,6 +25,9 @@ const ICONS = {
   upload: '<path d="M12 15V4M7.5 8.5L12 4l4.5 4.5M4.5 14.5v3a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3"/>',
   inbox: '<path d="M3.5 13.5l2.6-7.3A1.5 1.5 0 0 1 7.5 5.2h9a1.5 1.5 0 0 1 1.4 1L20.5 13.5v5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M3.5 13.5h5l1 2h5l1-2h5"/>',
   check: '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.3l2.4 2.4 5-5"/>',
+  gear: '<circle cx="12" cy="12" r="2.8"/><path d="M10.3 3.5h3.4l.5 2.4 1.7 1 2.3-.8 1.7 2.9-1.8 1.6v2l1.8 1.6-1.7 2.9-2.3-.8-1.7 1-.5 2.4h-3.4l-.5-2.4-1.7-1-2.3.8-1.7-2.9 1.8-1.6v-2L3.9 9l1.7-2.9 2.3.8 1.7-1z"/>',
+  globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.5 3.5 5.3 3.5 8.5s-1.1 6-3.5 8.5c-2.4-2.5-3.5-5.3-3.5-8.5s1.1-6 3.5-8.5z"/>',
+  info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>',
   folder: '<path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4.3l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5v8.3A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
 };
 const svg = (name) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
@@ -188,7 +191,7 @@ async function refresh() {
     S.connected = false;
     renderStatusbar();
   }
-  pollTimer = setTimeout(refresh, POLL_MS);
+  pollTimer = setTimeout(refresh, pollMs);
 }
 
 /* ---------- rendering ---------- */
@@ -503,31 +506,335 @@ function openRemove() {
   $('#removeDlg').showModal();
 }
 
-/* limits dialog */
-function openLimits() {
-  const s = S.session;
-  $('#limDownOn').checked = !!s['speed-limit-down-enabled'];
-  $('#limUpOn').checked = !!s['speed-limit-up-enabled'];
-  $('#limDown').value = s['speed-limit-down'] ?? 100;
-  $('#limUp').value = s['speed-limit-up'] ?? 100;
-  $('#altDown').value = s['alt-speed-down'] ?? 50;
-  $('#altUp').value = s['alt-speed-up'] ?? 50;
-  $('#limitsDlg').showModal();
+/* ---------- settings dialog ----------
+   Mirrors the Transmission desktop preferences (Speed, Downloading, Seeding,
+   Privacy, Network) plus UI-only options, like flood-for-transmission.
+   Edits are kept per field across pages; Save sends only changed keys. */
+const KBS = 'kB/s';
+const DAYS = [[127, 'Every day'], [62, 'Weekdays'], [65, 'Weekends'], [1, 'Sunday'], [2, 'Monday'],
+  [4, 'Tuesday'], [8, 'Wednesday'], [16, 'Thursday'], [32, 'Friday'], [64, 'Saturday']]; // tr_sched_day bits
+const UI_DEFAULTS = { theme: 'auto', refresh: 2000 };
+const SETTINGS_PAGES = [
+  { id: 'speed', title: 'Speed', icon: 'gauge', sections: [
+    { title: 'Speed limits', fields: [
+      { kind: 'num', on: 'speed-limit-down-enabled', key: 'speed-limit-down', label: 'Download', unit: KBS, min: 0 },
+      { kind: 'num', on: 'speed-limit-up-enabled', key: 'speed-limit-up', label: 'Upload', unit: KBS, min: 0 },
+    ] },
+    { title: 'Turtle mode', icon: 'turtle', hint: 'Alternative limits you can turn on from the sidebar or on a schedule.', fields: [
+      { kind: 'switch', key: 'alt-speed-enabled', label: 'Turtle mode is on' },
+      { kind: 'num', key: 'alt-speed-down', label: 'Download', unit: KBS, min: 0 },
+      { kind: 'num', key: 'alt-speed-up', label: 'Upload', unit: KBS, min: 0 },
+      { kind: 'switch', key: 'alt-speed-time-enabled', label: 'Turn on at scheduled times' },
+      { kind: 'time', key: 'alt-speed-time-begin', label: 'From', dep: 'alt-speed-time-enabled' },
+      { kind: 'time', key: 'alt-speed-time-end', label: 'To', dep: 'alt-speed-time-enabled' },
+      { kind: 'select', key: 'alt-speed-time-day', label: 'On days', options: DAYS, num: true, dep: 'alt-speed-time-enabled' },
+    ] },
+  ] },
+  { id: 'downloading', title: 'Downloading', icon: 'down', sections: [
+    { title: 'Adding', fields: [
+      { kind: 'dir', key: 'download-dir', label: 'Save to', freeSpace: true },
+      { kind: 'switch', key: 'start-added-torrents', label: 'Start added torrents' },
+    ] },
+    { title: 'Download queue', fields: [
+      { kind: 'num', on: 'download-queue-enabled', key: 'download-queue-size', label: 'Maximum active downloads', min: 1 },
+      { kind: 'num', on: 'queue-stalled-enabled', key: 'queue-stalled-minutes', label: 'Inactive if no data shared for', unit: 'min', min: 1 },
+    ] },
+    { title: 'Incomplete', fields: [
+      { kind: 'switch', key: 'rename-partial-files', label: 'Append ".part" to incomplete files’ names' },
+      { kind: 'dir', on: 'incomplete-dir-enabled', key: 'incomplete-dir', label: 'Keep incomplete files in' },
+    ] },
+  ] },
+  { id: 'seeding', title: 'Seeding', icon: 'up', sections: [
+    { title: 'Limits', fields: [
+      { kind: 'num', on: 'seedRatioLimited', key: 'seedRatioLimit', label: 'Stop seeding at ratio', min: 0, step: 0.1, float: true },
+      { kind: 'num', on: 'idle-seeding-limit-enabled', key: 'idle-seeding-limit', label: 'Stop seeding if idle for', unit: 'min', min: 1 },
+    ] },
+    { title: 'Seeding queue', fields: [
+      { kind: 'num', on: 'seed-queue-enabled', key: 'seed-queue-size', label: 'Maximum active uploads', min: 1 },
+    ] },
+  ] },
+  { id: 'privacy', title: 'Privacy', icon: 'verify', sections: [
+    { title: 'Encryption', fields: [
+      { kind: 'select', key: 'encryption', label: 'Encryption mode',
+        options: [['tolerated', 'Allow encryption'], ['preferred', 'Prefer encryption'], ['required', 'Require encryption']] },
+    ] },
+    { title: 'Blocklist', fields: [
+      { kind: 'switch', key: 'blocklist-enabled', label: 'Enable blocklist' },
+      { kind: 'text', key: 'blocklist-url', label: 'Blocklist URL', type: 'url', placeholder: 'https://…', dep: 'blocklist-enabled' },
+      { kind: 'custom', render: () => blocklistHtml() },
+    ] },
+  ] },
+  { id: 'network', title: 'Network', icon: 'globe', sections: [
+    { title: 'Incoming peers', fields: [
+      { kind: 'custom', render: () => portHtml() },
+      { kind: 'switch', key: 'port-forwarding-enabled', label: 'Use UPnP or NAT-PMP port forwarding from my router' },
+    ] },
+    { title: 'Peer limits', fields: [
+      { kind: 'num', key: 'peer-limit-per-torrent', label: 'Maximum peers per torrent', min: 1, max: 1024 },
+      { kind: 'num', key: 'peer-limit-global', label: 'Maximum peers overall', min: 1, max: 1024 },
+    ] },
+    { title: 'Options', fields: [
+      { kind: 'switch', key: 'utp-enabled', label: 'Enable µTP for peer connections' },
+      { kind: 'switch', key: 'pex-enabled', label: 'Use PEX to find more peers' },
+      { kind: 'switch', key: 'dht-enabled', label: 'Use DHT to find more peers' },
+      { kind: 'switch', key: 'lpd-enabled', label: 'Use Local Peer Discovery to find more peers' },
+    ] },
+    { title: 'Default public trackers', hint: 'Added to every public torrent. One per line, with a blank line between tiers.', fields: [
+      { kind: 'textarea', key: 'default-trackers', placeholder: 'udp://tracker.example.org:1337/announce' },
+    ] },
+  ] },
+  { id: 'interface', title: 'Interface', icon: 'theme', sections: [
+    { title: 'Appearance', hint: 'Saved in this browser only.', fields: [
+      { kind: 'select', ui: 'theme', label: 'Theme', options: [['auto', 'Match system'], ['light', 'Light'], ['dark', 'Dark']] },
+      { kind: 'select', ui: 'refresh', label: 'Refresh every', num: true,
+        options: [[1000, '1 second'], [2000, '2 seconds'], [5000, '5 seconds'], [10000, '10 seconds']] },
+    ] },
+  ] },
+  { id: 'about', title: 'About', icon: 'info', sections: [{ fields: [{ kind: 'custom', render: () => aboutHtml() }] }] },
+];
+const SET_FIELDS = SETTINGS_PAGES.flatMap((p) => p.sections.flatMap((s) => s.fields)).filter((f) => f.kind !== 'custom');
+const fieldId = (f) => f.key || `ui:${f.ui}`;
+const FIELD_BY_ID = new Map();
+for (const f of SET_FIELDS) {
+  FIELD_BY_ID.set(fieldId(f), f);
+  if (f.on) FIELD_BY_ID.set(f.on, { kind: 'switch', key: f.on, label: f.label });
 }
-async function saveLimits(e) {
+const SET = { page: 'speed', orig: {}, draft: {}, portResult: null, blocklistBusy: false };
+
+const minToTime = (m) => `${String(Math.floor((m || 0) / 60)).padStart(2, '0')}:${String((m || 0) % 60).padStart(2, '0')}`;
+const timeToMin = (t) => { const [h, m] = String(t).split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+function toSubdir(path) {
+  const p = String(path || '');
+  if (p === BASE_DIR) return '';
+  return p.startsWith(`${BASE_DIR}/`) ? p.slice(BASE_DIR.length + 1) : p;
+}
+function readUiPrefs() {
+  const ui = { ...UI_DEFAULTS, theme: currentTheme() };
+  try { const r = Number(localStorage.getItem('ug-refresh')); if (r >= 1000) ui.refresh = r; } catch {}
+  return ui;
+}
+
+async function openSettings(page) {
+  try { S.session = await rpc('session-get'); } catch (err) { toast(err.message, true); return; }
+  const s = S.session, ui = readUiPrefs();
+  SET.orig = {};
+  for (const [id, f] of FIELD_BY_ID) {
+    if (f.ui) SET.orig[id] = ui[f.ui];
+    else if (f.kind === 'dir') SET.orig[id] = toSubdir(s[f.key]);
+    else SET.orig[id] = s[f.key];
+  }
+  SET.draft = { ...SET.orig };
+  SET.portResult = null;
+  SET.page = typeof page === 'string' ? page : SET.page;
+  $('#setMenu').innerHTML = '<div class="set-menu-title">Settings</div>' + SETTINGS_PAGES.map((p) =>
+    `<button type="button" class="nav-item" data-page="${p.id}"><span class="ic">${svg(p.icon)}</span><span>${esc(p.title)}</span></button>`).join('');
+  renderSettings();
+  $('#settingsDlg').showModal();
+}
+
+function renderSettings() {
+  const page = SETTINGS_PAGES.find((p) => p.id === SET.page) || SETTINGS_PAGES[0];
+  $('#setMenu').querySelectorAll('[data-page]').forEach((b) => b.classList.toggle('active', b.dataset.page === page.id));
+  $('#setTitle').textContent = page.title;
+  $('#setBody').innerHTML = page.sections.map((sec) => `<section class="set-section">
+      ${sec.title ? `<div class="section-title">${sec.icon ? `<span class="ic">${svg(sec.icon)}</span>` : ''}${esc(sec.title)}</div>` : ''}
+      ${sec.hint ? `<p class="hint set-hint">${esc(sec.hint)}</p>` : ''}
+      ${sec.fields.map(fieldHtml).join('')}
+    </section>`).join('');
+  $('#setBody').scrollTop = 0;
+  if (page.sections.some((sec) => sec.fields.some((f) => f.freeSpace))) updateSetFree();
+  renderDirty();
+}
+
+function fieldHtml(f) {
+  if (f.kind === 'custom') return f.render();
+  const id = fieldId(f), v = SET.draft[id];
+  const off = (f.dep && !SET.draft[f.dep]) || (f.on && !SET.draft[f.on]);
+  const dis = off ? ' disabled' : '';
+  const label = f.on
+    ? `<label class="set-label check-row"><input type="checkbox" class="switch" data-k="${f.on}" aria-label="${esc(f.label)}"${SET.draft[f.on] ? ' checked' : ''}><span>${esc(f.label)}</span></label>`
+    : `<span class="set-label">${esc(f.label || '')}</span>`;
+  let ctl = '';
+  switch (f.kind) {
+    case 'switch':
+      return `<label class="set-row set-click"><span class="set-label">${esc(f.label)}</span><input type="checkbox" class="switch" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}"${v ? ' checked' : ''}${dis}></label>`;
+    case 'num':
+      ctl = `<div class="unit-input"><input type="number" class="input" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}" value="${esc(v ?? '')}" min="${f.min ?? 0}"${f.max ? ` max="${f.max}"` : ''} step="${f.step ?? 1}" inputmode="${f.float ? 'decimal' : 'numeric'}"${dis}>${f.unit ? `<span>${f.unit}</span>` : '<span></span>'}</div>`;
+      break;
+    case 'select': {
+      let opts = f.options;
+      if (v != null && !opts.some(([o]) => String(o) === String(v))) opts = [...opts, [v, `Custom (${v})`]];
+      ctl = `<select class="input set-select" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}"${dis}>${opts.map(([o, l]) => `<option value="${esc(o)}"${String(o) === String(v) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+      break;
+    }
+    case 'time':
+      ctl = `<input type="time" class="input set-time" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}" value="${minToTime(v)}"${dis}>`;
+      break;
+    case 'text':
+      ctl = `<input type="${f.type || 'text'}" class="input set-text" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}" value="${esc(v ?? '')}" placeholder="${esc(f.placeholder || '')}" spellcheck="false" autocomplete="off"${dis}>`;
+      break;
+    case 'textarea':
+      return `<textarea class="input set-area" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}" rows="4" placeholder="${esc(f.placeholder || '')}" spellcheck="false"${dis}>${esc(v ?? '')}</textarea>`;
+    case 'dir':
+      ctl = `<div class="dir-field set-dir${off ? ' is-off' : ''}"><span class="dir-prefix">${BASE_DIR}/</span><input class="input" data-k="${id}" aria-label="${esc(f.label || 'Default public trackers')}" value="${esc(v ?? '')}" placeholder="(top level)" spellcheck="false" autocomplete="off"${dis}></div>`;
+      if (f.freeSpace) return `<div class="set-row">${label}${ctl}</div><p class="hint set-sub" id="setFree">&nbsp;</p>`;
+      break;
+  }
+  return `<div class="set-row">${label}${ctl}</div>`;
+}
+
+function portHtml() {
+  const port = S.session['peer-port'] ?? '';
+  const r = SET.portResult;
+  const res = r == null ? '' : r === 'busy' ? 'Testing…'
+    : r.error ? `<span class="bad-text">Couldn’t test the port: ${esc(r.error)}</span>`
+    : r.open ? '<span class="ok-text">Port is open: other peers can connect to you.</span>'
+    : `<span class="bad-text">Port is closed. Forward TCP and UDP ${esc(port)} on your router to the NAS for faster downloads.</span>`;
+  return `<div class="set-row"><span class="set-label">Port for incoming connections</span>
+      <div class="set-inline"><b class="set-mono">${esc(port)}</b><button type="button" class="btn sm" id="portTest"${r === 'busy' ? ' disabled' : ''}>Test port</button></div></div>
+    <p class="hint set-sub">Fixed by the app so it always matches the port UGOS opens for the container.${res ? `<br>${res}` : ''}</p>`;
+}
+
+function blocklistHtml() {
+  const n = S.session['blocklist-size'] ?? 0;
+  return `<div class="set-row"><span class="set-label set-muted">Blocklist contains ${n.toLocaleString()} rule${n === 1 ? '' : 's'}</span>
+    <button type="button" class="btn sm" id="blUpdate"${SET.blocklistBusy || !SET.draft['blocklist-url'] ? ' disabled' : ''}>${SET.blocklistBusy ? 'Updating…' : 'Update'}</button></div>`;
+}
+
+function aboutHtml() {
+  const s = S.session;
+  return `<dl class="kv set-kv">
+      <dt>Transmission</dt><dd>${esc(s.version || '—')}</dd>
+      <dt>RPC version</dt><dd>${esc(s['rpc-version-semver'] || s['rpc-version'] || '—')}</dd>
+      <dt>Settings folder</dt><dd class="set-mono">${esc(s['config-dir'] || '—')}</dd>
+      <dt>Download folder</dt><dd class="set-mono">${BASE_DIR}</dd>
+      <dt>Peer port</dt><dd>${esc(s['peer-port'] ?? '—')}</dd>
+    </dl>
+    <div class="section-title">Web UI login</div>
+    <p class="set-p">The username and password are set when you install the app in App Center (<i>Web UI username</i> and <i>Web UI password</i>). They can’t be changed from here.</p>
+    <div class="section-title">Not available on the NAS</div>
+    <p class="set-p">Desktop-only options (tray icon, notifications, sounds, watch folder, clipboard detection) don’t apply to a NAS service. Scripts that run when a download finishes aren’t offered either, because they would run inside the container.</p>
+    <p class="set-p"><a href="https://transmissionbt.com/" target="_blank" rel="noopener">transmissionbt.com</a></p>`;
+}
+
+function changedIds() {
+  return [...FIELD_BY_ID.keys()].filter((id) => String(SET.draft[id] ?? '') !== String(SET.orig[id] ?? ''));
+}
+function renderDirty() {
+  const n = changedIds().length;
+  $('#setDirty').textContent = n ? `${n} unsaved change${n === 1 ? '' : 's'}` : '';
+  SETTINGS_PAGES.forEach((p) => {
+    const ids = p.sections.flatMap((s) => s.fields).filter((f) => f.kind !== 'custom').flatMap((f) => [fieldId(f), f.on].filter(Boolean));
+    const dirty = ids.some((id) => String(SET.draft[id] ?? '') !== String(SET.orig[id] ?? ''));
+    $(`#setMenu [data-page="${p.id}"]`)?.classList.toggle('dirty', dirty);
+  });
+}
+
+let setFreeTimer = null;
+function updateSetFree() {
+  clearTimeout(setFreeTimer);
+  setFreeTimer = setTimeout(async () => {
+    const el = $('#setFree');
+    if (!el) return;
+    const sub = cleanSubdir(SET.draft['download-dir'] || '');
+    if (!validSubdir(sub)) { el.textContent = 'The folder must be inside /downloads.'; return; }
+    try { el.textContent = `${fmtBytes((await rpc('free-space', { path: fullDir(sub) }))['size-bytes'])} free`; }
+    catch {
+      let text = 'New folder: Transmission will create it';
+      try { text += ` · ${fmtBytes((await rpc('free-space', { path: BASE_DIR }))['size-bytes'])} free`; } catch {}
+      el.textContent = text;
+    }
+  }, 250);
+}
+
+function onSettingInput(e) {
+  const el = e.target.closest('[data-k]');
+  if (!el) return;
+  const id = el.dataset.k, f = FIELD_BY_ID.get(id);
+  let v;
+  if (el.type === 'checkbox') v = el.checked;
+  else if (f?.kind === 'time') v = timeToMin(el.value);
+  else if (f?.kind === 'select' && f.num) v = Number(el.value);
+  else v = el.value;
+  SET.draft[id] = v;
+  // A switch can enable other fields on the page: re-render, keeping focus simple.
+  if (el.type === 'checkbox' && e.type === 'change') renderSettings();
+  else {
+    if (id === 'download-dir') updateSetFree();
+    if (id === 'blocklist-url') { const b = $('#blUpdate'); if (b) b.disabled = SET.blocklistBusy || !v; }
+    renderDirty();
+  }
+}
+
+function settingValue(id) {
+  const f = FIELD_BY_ID.get(id), v = SET.draft[id];
+  if (f.kind === 'num') {
+    const n = f.float ? parseFloat(v) : Number(v);
+    if (String(v).trim() === '' || !Number.isFinite(n) || (!f.float && !Number.isInteger(n))) throw new Error(`${f.label}: enter a ${f.float ? 'number' : 'whole number'}`);
+    if (n < (f.min ?? 0) || (f.max && n > f.max)) throw new Error(`${f.label}: enter a value from ${f.min ?? 0}${f.max ? ` to ${f.max}` : ''}`);
+    return n;
+  }
+  if (f.kind === 'dir') {
+    const sub = cleanSubdir(String(v || ''));
+    if (!validSubdir(sub)) throw new Error(`${f.label}: the folder must be inside ${BASE_DIR}`);
+    return fullDir(sub);
+  }
+  if (f.kind === 'text' && f.type === 'url' && v && !/^https?:\/\//i.test(v)) throw new Error(`${f.label}: enter an http:// or https:// address`);
+  return v;
+}
+
+async function saveSettings(e) {
   e.preventDefault();
-  const n = (id) => Math.max(0, parseInt($(id).value, 10) || 0);
+  const ids = changedIds();
+  if (!ids.length) { $('#settingsDlg').close(); return; }
+  const args = {}, ui = {};
   try {
-    await rpc('session-set', {
-      'speed-limit-down-enabled': $('#limDownOn').checked, 'speed-limit-down': n('#limDown'),
-      'speed-limit-up-enabled': $('#limUpOn').checked, 'speed-limit-up': n('#limUp'),
-      'alt-speed-down': n('#altDown'), 'alt-speed-up': n('#altUp'),
-    });
+    for (const id of ids) {
+      const f = FIELD_BY_ID.get(id);
+      if (f.ui) ui[f.ui] = SET.draft[id];
+      else args[f.key] = settingValue(id);
+    }
+  } catch (err) {
+    const f = FIELD_BY_ID.get(ids.find((id) => { try { settingValue(id); return false; } catch { return !FIELD_BY_ID.get(id).ui; } }));
+    const page = f && SETTINGS_PAGES.find((p) => p.sections.some((s) => s.fields.some((x) => fieldId(x) === fieldId(f) || x.on === f.key)));
+    if (page && page.id !== SET.page) { SET.page = page.id; renderSettings(); }
+    toast(err.message, true);
+    return;
+  }
+  $('#setSave').disabled = true;
+  try {
+    if (Object.keys(args).length) await rpc('session-set', args);
+    if (ui.theme) setTheme(ui.theme);
+    if (ui.refresh) { pollMs = ui.refresh; try { localStorage.setItem('ug-refresh', String(ui.refresh)); } catch {} }
     S.session = await rpc('session-get');
-    $('#limitsDlg').close();
-    toast('Speed limits saved');
-    render();
-  } catch (err) { toast(err.message, true); }
+    $('#settingsDlg').close();
+    toast('Settings saved');
+    refresh();
+  } catch (err) { toast(`Couldn’t save settings: ${err.message}`, true); }
+  finally { $('#setSave').disabled = false; }
+}
+
+async function testPort() {
+  SET.portResult = 'busy';
+  renderSettings();
+  try { SET.portResult = { open: !!(await rpc('port-test'))['port-is-open'] }; }
+  catch (err) { SET.portResult = { error: err.message }; }
+  if ($('#settingsDlg').open && SET.page === 'network') renderSettings();
+}
+
+async function updateBlocklist() {
+  const url = SET.draft['blocklist-url'];
+  if (url && !/^https?:\/\//i.test(url)) { toast('Blocklist URL: enter an http:// or https:// address', true); return; }
+  SET.blocklistBusy = true;
+  renderSettings();
+  try {
+    if (url !== SET.orig['blocklist-url']) { await rpc('session-set', { 'blocklist-url': url }); SET.orig['blocklist-url'] = url; }
+    const r = await rpc('blocklist-update');
+    S.session = { ...S.session, 'blocklist-size': r['blocklist-size'] };
+    toast(`Blocklist updated: ${(r['blocklist-size'] ?? 0).toLocaleString()} rules`);
+  } catch (err) { toast(`Couldn’t update the blocklist: ${err.message}`, true); }
+  SET.blocklistBusy = false;
+  if ($('#settingsDlg').open && SET.page === 'privacy') renderSettings();
 }
 
 /* theme */
@@ -621,8 +928,19 @@ function bind() {
     act('torrent-remove', ids, { 'delete-local-data': withData }, withData ? 'Removed torrents and their files' : 'Removed torrents');
   });
 
-  $('#openLimits').onclick = openLimits;
-  $('#limitsForm').addEventListener('submit', saveLimits);
+  $('#openLimits').onclick = () => openSettings('speed');
+  $('#openSettings').onclick = () => openSettings();
+  $('#setMenu').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-page]');
+    if (b) { SET.page = b.dataset.page; renderSettings(); }
+  });
+  $('#setBody').addEventListener('input', onSettingInput);
+  $('#setBody').addEventListener('change', onSettingInput);
+  $('#setBody').addEventListener('click', (e) => {
+    if (e.target.closest('#portTest')) testPort();
+    if (e.target.closest('#blUpdate')) updateBlocklist();
+  });
+  $('#settingsForm').addEventListener('submit', saveSettings);
   $('#turtle').addEventListener('change', async (e) => {
     const on = e.target.checked;
     try {

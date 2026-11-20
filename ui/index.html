@@ -31,6 +31,7 @@
       </label>
       <div class="foot-btns">
         <button class="nav-item" id="openLimits"><span class="ic" data-icon="gauge"></span><span>Speed limits</span></button>
+        <button class="nav-item" id="openSettings"><span class="ic" data-icon="gear"></span><span>Settings</span></button>
         <button class="nav-item" id="themeBtn"><span class="ic" data-icon="theme"></span><span id="themeLabel">Theme: Auto</span></button>
       </div>
     </div>
@@ -143,34 +144,21 @@
   </form>
 </dialog>
 
-<!-- Speed limits -->
-<dialog class="dialog small" id="limitsDlg">
-  <form method="dialog" id="limitsForm">
-    <header class="dlg-head"><h2>Speed limits</h2><button type="button" class="btn icon-only" data-close><span class="ic" data-icon="close"></span></button></header>
-    <div class="dlg-body">
-      <div class="section-title">Normal limits</div>
-      <div class="limit-row">
-        <label class="check-row"><input type="checkbox" class="switch" id="limDownOn"> Download</label>
-        <div class="unit-input"><input type="number" min="0" class="input" id="limDown"><span>KB/s</span></div>
-      </div>
-      <div class="limit-row">
-        <label class="check-row"><input type="checkbox" class="switch" id="limUpOn"> Upload</label>
-        <div class="unit-input"><input type="number" min="0" class="input" id="limUp"><span>KB/s</span></div>
-      </div>
-      <div class="section-title"><span class="ic" data-icon="turtle"></span> Turtle mode limits</div>
-      <div class="limit-row">
-        <span class="row-label">Download</span>
-        <div class="unit-input"><input type="number" min="0" class="input" id="altDown"><span>KB/s</span></div>
-      </div>
-      <div class="limit-row">
-        <span class="row-label">Upload</span>
-        <div class="unit-input"><input type="number" min="0" class="input" id="altUp"><span>KB/s</span></div>
-      </div>
+<!-- Settings -->
+<dialog class="dialog settings" id="settingsDlg">
+  <form method="dialog" id="settingsForm" class="set-wrap" novalidate>
+    <nav class="set-menu" id="setMenu" aria-label="Settings pages">
+      <div class="set-menu-title">Settings</div>
+    </nav>
+    <div class="set-main">
+      <header class="dlg-head"><h2 id="setTitle">Speed</h2><button type="button" class="btn icon-only" data-close title="Close"><span class="ic" data-icon="close"></span></button></header>
+      <div class="set-body" id="setBody"></div>
+      <footer class="dlg-foot">
+        <span class="hint set-dirty" id="setDirty"></span>
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="setSave">Save</button>
+      </footer>
     </div>
-    <footer class="dlg-foot">
-      <button type="button" class="btn" data-close>Cancel</button>
-      <button type="submit" class="btn primary">Save</button>
-    </footer>
   </form>
 </dialog>
 

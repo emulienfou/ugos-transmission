@@ -3,8 +3,8 @@
 # image and saves it as the app's single image tar.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-IMAGE=davidsanchez/transmission:4.1.4-r0-ls370-ug2
-OUT=rootfs_amd64/images/transmission-4.1.4-r0-ls370-ug2.tar
+IMAGE=davidsanchez/transmission:4.1.4-r0-ls370-ug3
+OUT=rootfs_amd64/images/transmission-4.1.4-r0-ls370-ug3.tar
 docker build --platform linux/amd64 --build-context ui=ui -t "$IMAGE" image
 mkdir -p "$(dirname "$OUT")"
 rm -f rootfs_amd64/images/*.tar
