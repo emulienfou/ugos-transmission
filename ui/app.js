@@ -633,6 +633,7 @@ function bind() {
     render();
   });
   $('#themeBtn').onclick = () => setTheme(THEMES[(THEMES.indexOf(currentTheme()) + 1) % THEMES.length]);
+  setTheme(currentTheme()); // sync the label with the theme index.html restored
 
   // Drag .torrent files anywhere on the page
   let dragDepth = 0;

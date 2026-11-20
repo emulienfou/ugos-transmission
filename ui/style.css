@@ -144,6 +144,12 @@ svg { stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round
 .table tbody tr.sel td { background: var(--selected); }
 .c-check { width: 44px; } .c-size { width: 92px; } .c-prog { width: 170px; } .c-status { width: 120px; }
 .c-num { width: 100px; text-align: right !important; }
+/* Detail panel open: the list loses ~450px, so drop secondary columns to keep Name visible. */
+.main:has(.detail:not([hidden])) .c-up,
+.main:has(.detail:not([hidden])) .c-size { display: none; }
+.main:has(.detail:not([hidden])) .c-prog { width: 150px; }
+.main:has(.detail:not([hidden])) .c-num { width: 90px; }
+.main:has(.detail:not([hidden])) .search { width: 160px; }
 .table td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2); }
 .table td.dim { color: var(--text-2); font-variant-numeric: tabular-nums; }
 .name-cell { display: flex; flex-direction: column; min-width: 0; }
