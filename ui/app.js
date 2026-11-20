@@ -4,6 +4,7 @@
 
 const RPC_URL = '/transmission/rpc';
 const BASE_DIR = '/downloads';
+let titleSpeeds = (() => { try { return localStorage.getItem('ug-title-speeds') !== '0'; } catch { return true; } })();
 let pollMs = (() => { try { const r = Number(localStorage.getItem('ug-refresh')); return r >= 1000 ? r : 2000; } catch { return 2000; } })();
 
 /* ---------- icons (24px line icons) ---------- */
@@ -189,6 +190,7 @@ async function refresh() {
   } catch (err) {
     if (S.connected) toast(`Lost connection to Transmission: ${err.message}`, true);
     S.connected = false;
+    updateTitle();
     renderStatusbar();
   }
   pollTimer = setTimeout(refresh, pollMs);
@@ -273,9 +275,16 @@ function renderToolbar() {
   $('#removeBtn').disabled = sel.length === 0;
 }
 
+function updateTitle() {
+  document.title = titleSpeeds && S.connected
+    ? `Transmission ↓ ${fmtSpeed(S.stats.downloadSpeed || 0)} ↑ ${fmtSpeed(S.stats.uploadSpeed || 0)}`
+    : 'Transmission';
+}
+
 function renderSpeeds() {
   $('#totDown').textContent = fmtSpeed(S.stats.downloadSpeed || 0);
   $('#totUp').textContent = fmtSpeed(S.stats.uploadSpeed || 0);
+  updateTitle();
   const alt = !!S.session['alt-speed-enabled'];
   $('#turtle').checked = alt;
   $('.turtle-row').classList.toggle('on', alt);
@@ -513,7 +522,7 @@ function openRemove() {
 const KBS = 'kB/s';
 const DAYS = [[127, 'Every day'], [62, 'Weekdays'], [65, 'Weekends'], [1, 'Sunday'], [2, 'Monday'],
   [4, 'Tuesday'], [8, 'Wednesday'], [16, 'Thursday'], [32, 'Friday'], [64, 'Saturday']]; // tr_sched_day bits
-const UI_DEFAULTS = { theme: 'auto', refresh: 2000 };
+const UI_DEFAULTS = { theme: 'auto', refresh: 2000, titleSpeeds: true };
 const SETTINGS_PAGES = [
   { id: 'speed', title: 'Speed', icon: 'gauge', sections: [
     { title: 'Speed limits', fields: [
@@ -588,6 +597,7 @@ const SETTINGS_PAGES = [
       { kind: 'select', ui: 'theme', label: 'Theme', options: [['auto', 'Match system'], ['light', 'Light'], ['dark', 'Dark']] },
       { kind: 'select', ui: 'refresh', label: 'Refresh every', num: true,
         options: [[1000, '1 second'], [2000, '2 seconds'], [5000, '5 seconds'], [10000, '10 seconds']] },
+      { kind: 'switch', ui: 'titleSpeeds', label: 'Show speeds in the browser tab title' },
     ] },
   ] },
   { id: 'about', title: 'About', icon: 'info', sections: [{ fields: [{ kind: 'custom', render: () => aboutHtml() }] }] },
@@ -609,7 +619,7 @@ function toSubdir(path) {
   return p.startsWith(`${BASE_DIR}/`) ? p.slice(BASE_DIR.length + 1) : p;
 }
 function readUiPrefs() {
-  const ui = { ...UI_DEFAULTS, theme: currentTheme() };
+  const ui = { ...UI_DEFAULTS, theme: currentTheme(), titleSpeeds };
   try { const r = Number(localStorage.getItem('ug-refresh')); if (r >= 1000) ui.refresh = r; } catch {}
   return ui;
 }
@@ -805,6 +815,11 @@ async function saveSettings(e) {
   try {
     if (Object.keys(args).length) await rpc('session-set', args);
     if (ui.theme) setTheme(ui.theme);
+    if ('titleSpeeds' in ui) {
+      titleSpeeds = !!ui.titleSpeeds;
+      try { localStorage.setItem('ug-title-speeds', titleSpeeds ? '1' : '0'); } catch {}
+      updateTitle();
+    }
     if (ui.refresh) { pollMs = ui.refresh; try { localStorage.setItem('ug-refresh', String(ui.refresh)); } catch {} }
     S.session = await rpc('session-get');
     $('#settingsDlg').close();
