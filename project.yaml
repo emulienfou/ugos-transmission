@@ -26,20 +26,6 @@ parameters:
       en-US:
         name: Download folder
         description: Shared folder where Transmission saves downloads
-  - key: PUID
-    type: number
-    required: true
-    i18n:
-      en-US:
-        name: User ID (PUID)
-        description: UID that owns downloaded files. Run "id" over SSH to find it (often 1000)
-  - key: PGID
-    type: number
-    required: true
-    i18n:
-      en-US:
-        name: Group ID (PGID)
-        description: GID that owns downloaded files. Run "id" over SSH to find it (often 10 or 100)
   - key: RPC_USER
     type: string
     i18n:

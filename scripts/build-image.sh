@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Saves the linuxserver.io Transmission image (linux/amd64) as the app's single image tar.
+# Builds the UGOS wrapper image (linux/amd64) on top of linuxserver's Transmission
+# image and saves it as the app's single image tar.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-IMAGE=lscr.io/linuxserver/transmission:4.1.4-r0-ls370
-OUT=rootfs_amd64/images/transmission-4.1.4-r0-ls370.tar
-docker pull --platform linux/amd64 "$IMAGE"
+IMAGE=davidsanchez/transmission:4.1.4-r0-ls370-ug1
+OUT=rootfs_amd64/images/transmission-4.1.4-r0-ls370-ug1.tar
+docker build --platform linux/amd64 -t "$IMAGE" image
 mkdir -p "$(dirname "$OUT")"
 rm -f rootfs_amd64/images/*.tar
 docker save --platform linux/amd64 -o "$OUT" "$IMAGE"

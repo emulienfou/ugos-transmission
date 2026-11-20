@@ -1,10 +1,8 @@
 services:
   transmission:
-    image: lscr.io/linuxserver/transmission:4.1.4-r0-ls370
+    image: davidsanchez/transmission:4.1.4-r0-ls370-ug1
     restart: unless-stopped
     environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
       - TZ=${TZ}
       - USER=${RPC_USER}
       - PASS=${RPC_PASS}
