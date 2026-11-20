@@ -79,3 +79,5 @@ Commit `BUILD` after packing: UGOS only upgrades in place when the build number 
 - [Transmission](https://github.com/transmission/transmission) is GPLv2/GPLv3. The app icon is rendered from its official SVG.
 - [linuxserver/docker-transmission](https://github.com/linuxserver/docker-transmission) is GPLv3.
 - Settings layout inspired by [flood-for-transmission](https://github.com/johman10/flood-for-transmission).
+
+This package (wrapper, scripts and web UI) is licensed under the [GNU GPL v3.0](LICENSE). Made by [emulienfou](https://davidsanchez.me).

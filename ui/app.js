@@ -720,6 +720,13 @@ function aboutHtml() {
       <dt>Download folder</dt><dd class="set-mono">${BASE_DIR}</dd>
       <dt>Peer port</dt><dd>${esc(s['peer-port'] ?? '—')}</dd>
     </dl>
+    <div class="section-title">This app</div>
+    <dl class="kv set-kv">
+      <dt>Source code</dt><dd><a href="https://github.com/emulienfou/ugos-transmission" target="_blank" rel="noopener">github.com/emulienfou/ugos-transmission</a></dd>
+      <dt>Author</dt><dd><a href="https://davidsanchez.me" target="_blank" rel="noopener">emulienfou</a></dd>
+      <dt>License</dt><dd><a href="https://github.com/emulienfou/ugos-transmission/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a></dd>
+      <dt>Issues</dt><dd><a href="https://github.com/emulienfou/ugos-transmission/issues" target="_blank" rel="noopener">Report a problem</a></dd>
+    </dl>
     <div class="section-title">Web UI login</div>
     <p class="set-p">The username and password are set when you install the app in App Center (<i>Web UI username</i> and <i>Web UI password</i>). They can’t be changed from here.</p>
     <div class="section-title">Not available on the NAS</div>
