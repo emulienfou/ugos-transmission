@@ -24,7 +24,7 @@
 
 1. Download the latest `.upk` from [Releases](../../releases).
 2. In UGOS Pro, open **App Center › Manual Install** and choose the file. Your NAS must be authorized for developer packages.
-3. Pick the **download folder**. A web UI username and password are optional.
+3. Pick the **download folder**. Choose a web UI username and password (both required).
 4. Open the app from the desktop, or go to `http://<nas-ip>:9091`.
 
 Updates install the same way. A higher build number upgrades in place and keeps your torrents and settings.
@@ -83,3 +83,4 @@ Commit `BUILD` after packing: UGOS only upgrades in place when the build number 
 - Settings layout inspired by [flood-for-transmission](https://github.com/johman10/flood-for-transmission).
 
 This package (wrapper, scripts and web UI) is licensed under the [GNU GPL v3.0](LICENSE). Made by [emulienfou](https://davidsanchez.me).
+See the [privacy policy](https://emulienfou.github.io/ugos-transmission/privacy.html): the app collects no personal data.

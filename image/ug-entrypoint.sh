@@ -61,4 +61,10 @@ if [ -z "${PUID:-}" ] || [ -z "${PGID:-}" ]; then
   done
 fi
 
+# Never expose the web UI / RPC without a login (UGREEN review rule).
+if [ -z "${USER:-}" ] || [ -z "${PASS:-}" ]; then
+  log "ERROR: the web UI username and password are required. Set them in App Center and restart."
+  exit 1
+fi
+
 exec /init "$@"

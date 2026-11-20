@@ -14,10 +14,10 @@ depend_fw_version: 1.13.0.0000
 depend_docker_version: 1.7.0.0000
 i18n:
   en-US:
-    name: Transmission
-    description: Fast, easy and free BitTorrent client with a web interface
+    name: Transmission for UGOS
+    description: Unofficial package of the Transmission BitTorrent client, with a web interface designed for UGOS
     author: David Sanchez
-    official: https://transmissionbt.com/
+    official: https://github.com/emulienfou/ugos-transmission
 parameters:
   - key: DOWNLOAD_DIR
     type: path
@@ -27,14 +27,16 @@ parameters:
         name: Download folder
         description: Shared folder where Transmission saves downloads
   - key: RPC_USER
+    required: true
     type: string
     i18n:
       en-US:
         name: Web UI username
-        description: Leave empty to disable web UI login
+        description: Username to sign in to the web UI
   - key: RPC_PASS
+    required: true
     type: password
     i18n:
       en-US:
         name: Web UI password
-        description: Leave empty to disable web UI login
+        description: Password to sign in to the web UI

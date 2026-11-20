@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy – Transmission for UGOS</title>
+<style>
+  body { font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1f2329; background: #fff; margin: 0; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 20px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 8px; }
+  .meta { color: #646a73; margin: 0 0 24px; }
+  a { color: #2c6cf6; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 15px; }
+  th, td { text-align: left; vertical-align: top; border: 1px solid #e3e5e8; padding: 8px 10px; }
+  th { background: #f5f6f7; }
+  code { background: #f2f3f5; padding: 1px 5px; border-radius: 4px; font-size: 14px; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6e8eb; background: #17181a; }
+    .meta { color: #9aa0a8; }
+    a { color: #6a9aff; }
+    th, td { border-color: #33363b; }
+    th { background: #222428; }
+    code { background: #26282c; }
+  }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy Policy</h1>
+<p class="meta">Transmission for UGOS (app ID <code>me.davidsanchez.transmission</code>)<br>
+Developer: David Sanchez · Effective date: 20 November 2026</p>
+
+<p>Transmission for UGOS is an unofficial package of the open-source <a href="https://transmissionbt.com/">Transmission</a> BitTorrent client for UGREEN NAS devices running UGOS Pro. This policy explains what data the app handles. In short: <strong>the developer collects no personal information</strong>. The app has no analytics, no telemetry, no advertising and no third-party SDKs, and it never sends your data to the developer.</p>
+
+<h2>1. Data stored on your NAS</h2>
+<p>Everything the app stores stays on your own NAS:</p>
+<table>
+  <tr><th>Data</th><th>Where</th><th>Why</th></tr>
+  <tr><td>Web UI username and password you choose at install</td><td>App settings in the app's folder on the NAS (the password is saved as a salted hash by Transmission)</td><td>To protect the web interface with a login</td></tr>
+  <tr><td>Torrent files, magnet links, download progress and Transmission settings</td><td>App's <code>config</code> folder on the NAS</td><td>To resume your downloads and keep your settings</td></tr>
+  <tr><td>Downloaded files</td><td>The shared folder you pick at install</td><td>That is what you asked the app to download</td></tr>
+</table>
+<p>Uninstalling the app removes its settings folder. Your downloaded files stay in your shared folder until you delete them.</p>
+
+<h2>2. Data stored in your browser</h2>
+<p>The web interface saves three display preferences in your browser's local storage: theme (<code>ug-theme</code>), refresh interval (<code>ug-refresh</code>) and whether speeds appear in the tab title (<code>ug-title-speeds</code>). Your login is kept only in the open page's memory and is forgotten when you close it. No cookies are used for tracking.</p>
+
+<h2>3. Network connections</h2>
+<p>BitTorrent is a peer-to-peer protocol. When you add a torrent, the app connects to other computers so it can download and share it. This is how the protocol works and is started only by you:</p>
+<ul>
+  <li><strong>Peers</strong> and <strong>trackers</strong> of the torrents you add, and the <strong>DHT</strong>, <strong>PEX</strong> and <strong>Local Peer Discovery</strong> networks if enabled in Settings. These parties can see your public IP address and which torrents you are sharing. You can turn DHT, PEX and Local Peer Discovery off in Settings › Network, and require encryption in Settings › Privacy.</li>
+  <li><strong>Port test</strong>: only when you click <em>Test port</em>, Transmission asks <code>portcheck.transmissionbt.com</code> (run by the Transmission project) whether your peer port is reachable. That service sees your public IP address and port number.</li>
+  <li><strong>Blocklist</strong>: only if you enable it, the app downloads the blocklist from the URL you enter in Settings › Privacy.</li>
+</ul>
+<p>The app makes no other connections. The web interface is served from your NAS and loads nothing from the internet.</p>
+
+<h2>4. Permissions</h2>
+<p>The app only accesses the shared folder you choose at install, to save downloads there, and its own settings folder. It does not scan, read or upload any other files on your NAS. It opens port 9091 for the web interface (always protected by your username and password) and port 51413 (TCP and UDP) for BitTorrent peers.</p>
+
+<h2>5. Sharing and selling data</h2>
+<p>The developer does not collect, share or sell any personal information.</p>
+
+<h2>6. Children</h2>
+<p>The app is not directed at children and collects no personal information from anyone.</p>
+
+<h2>7. Changes to this policy</h2>
+<p>This policy is updated together with the app when the data it handles changes. The effective date above shows the latest version, and past versions are kept in the <a href="https://github.com/emulienfou/ugos-transmission/commits/main/docs/privacy.html">project history</a>.</p>
+
+<h2>8. Contact</h2>
+<p>Questions about this policy or the app: open an issue at <a href="https://github.com/emulienfou/ugos-transmission/issues">github.com/emulienfou/ugos-transmission/issues</a>.</p>
+</main>
+</body>
+</html>

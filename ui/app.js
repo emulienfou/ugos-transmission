@@ -725,6 +725,7 @@ function aboutHtml() {
       <dt>Source code</dt><dd><a href="https://github.com/emulienfou/ugos-transmission" target="_blank" rel="noopener">github.com/emulienfou/ugos-transmission</a></dd>
       <dt>Author</dt><dd><a href="https://davidsanchez.me" target="_blank" rel="noopener">emulienfou</a></dd>
       <dt>License</dt><dd><a href="https://github.com/emulienfou/ugos-transmission/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a></dd>
+      <dt>Privacy</dt><dd><a href="https://emulienfou.github.io/ugos-transmission/privacy.html" target="_blank" rel="noopener">Privacy policy</a></dd>
       <dt>Issues</dt><dd><a href="https://github.com/emulienfou/ugos-transmission/issues" target="_blank" rel="noopener">Report a problem</a></dd>
     </dl>
     <div class="section-title">Web UI login</div>
