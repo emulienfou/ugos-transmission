@@ -29,6 +29,8 @@
 
 Updates install the same way. A higher build number upgrades in place and keeps your torrents and settings.
 
+> **Upgrading from build 10 or earlier:** the app ID changed from `com.davidsanchez.transmission` to `me.davidsanchez.transmission` in build 11, so UGOS sees it as a new app. Uninstall the old one, then install the new one and pick the same download folder. Downloaded files stay on your share; the torrent list and settings start fresh.
+
 | Port | Use |
 |---|---|
 | 9091/tcp | Web UI and RPC |
