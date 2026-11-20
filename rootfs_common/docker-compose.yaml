@@ -1,12 +1,13 @@
 services:
   transmission:
-    image: davidsanchez/transmission:4.1.4-r0-ls370-ug5
+    image: davidsanchez/transmission:4.1.4-r0-ls370-ug6
     restart: unless-stopped
     environment:
       - TZ=${TZ}
       - USER=${RPC_USER}
       - PASS=${RPC_PASS}
       - PEERPORT=51413
+      - UMASK=002
       - TRANSMISSION_WEB_HOME=/ui
     volumes:
       - ./config:/config
