@@ -928,7 +928,6 @@ function bind() {
     act('torrent-remove', ids, { 'delete-local-data': withData }, withData ? 'Removed torrents and their files' : 'Removed torrents');
   });
 
-  $('#openLimits').onclick = () => openSettings('speed');
   $('#openSettings').onclick = () => openSettings();
   $('#setMenu').addEventListener('click', (e) => {
     const b = e.target.closest('[data-page]');
