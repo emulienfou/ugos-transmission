@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Transmission</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    try { var t = localStorage.getItem('ug-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="favicon.svg" alt="" width="26" height="26">
+      <span>Transmission</span>
+    </div>
+    <nav class="nav" id="nav" aria-label="Filters"></nav>
+    <div class="side-foot">
+      <div class="speeds" aria-live="off">
+        <div class="speed-row"><span class="ic dl" data-icon="down"></span><b id="totDown">0 B/s</b></div>
+        <div class="speed-row"><span class="ic ul" data-icon="up"></span><b id="totUp">0 B/s</b></div>
+      </div>
+      <label class="turtle-row" title="Use alternative speed limits">
+        <span class="ic" data-icon="turtle"></span>
+        <span class="grow">Turtle mode</span>
+        <input type="checkbox" class="switch" id="turtle">
+      </label>
+      <div class="foot-btns">
+        <button class="nav-item" id="openLimits"><span class="ic" data-icon="gauge"></span><span>Speed limits</span></button>
+        <button class="nav-item" id="themeBtn"><span class="ic" data-icon="theme"></span><span id="themeLabel">Theme: Auto</span></button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="card list-card">
+      <header class="toolbar">
+        <button class="btn primary" id="addBtn"><span class="ic" data-icon="plus"></span><span>Add</span></button>
+        <div class="tb-group">
+          <button class="btn icon-btn" id="startBtn" title="Resume" disabled><span class="ic" data-icon="play"></span><span class="lbl">Resume</span></button>
+          <button class="btn icon-btn" id="stopBtn" title="Pause" disabled><span class="ic" data-icon="pause"></span><span class="lbl">Pause</span></button>
+          <button class="btn icon-btn" id="verifyBtn" title="Verify local data" disabled><span class="ic" data-icon="verify"></span><span class="lbl">Verify</span></button>
+          <button class="btn icon-btn danger-text" id="removeBtn" title="Remove" disabled><span class="ic" data-icon="trash"></span><span class="lbl">Remove</span></button>
+        </div>
+        <div class="search">
+          <span class="ic" data-icon="search"></span>
+          <input type="search" id="search" placeholder="Search" autocomplete="off">
+        </div>
+      </header>
+      <div class="table-wrap" id="tableWrap">
+        <table class="table" id="table">
+          <thead>
+            <tr>
+              <th class="c-check"><input type="checkbox" class="cb" id="checkAll" aria-label="Select all"></th>
+              <th class="c-name sortable" data-sort="name">Name</th>
+              <th class="c-size sortable" data-sort="size">Size</th>
+              <th class="c-prog sortable" data-sort="progress">Progress</th>
+              <th class="c-status sortable" data-sort="status">Status</th>
+              <th class="c-num sortable" data-sort="down">Download</th>
+              <th class="c-num c-up sortable" data-sort="up">Upload</th>
+              <th class="c-num sortable" data-sort="eta">ETA</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="empty" hidden>
+          <span class="empty-ic" data-icon="inbox"></span>
+          <p id="emptyText">No torrents</p>
+        </div>
+      </div>
+      <footer class="statusbar" id="statusbar"></footer>
+    </section>
+
+    <section class="card detail" id="detail" hidden>
+      <header class="detail-head">
+        <div class="detail-title" id="detailTitle"></div>
+        <button class="btn icon-only" id="detailClose" title="Close"><span class="ic" data-icon="close"></span></button>
+      </header>
+      <div class="tabs" id="detailTabs" role="tablist">
+        <button class="tab active" data-tab="general">General</button>
+        <button class="tab" data-tab="files">Files</button>
+        <button class="tab" data-tab="peers">Peers</button>
+        <button class="tab" data-tab="trackers">Trackers</button>
+      </div>
+      <div class="detail-body" id="detailBody"></div>
+    </section>
+  </main>
+</div>
+
+<!-- Add torrent -->
+<dialog class="dialog" id="addDlg">
+  <form method="dialog" id="addForm">
+    <header class="dlg-head"><h2>Add torrent</h2><button type="button" class="btn icon-only" data-close><span class="ic" data-icon="close"></span></button></header>
+    <div class="dlg-body">
+      <div class="tabs" id="addTabs">
+        <button type="button" class="tab active" data-tab="magnet">Magnet link</button>
+        <button type="button" class="tab" data-tab="file">Torrent file</button>
+      </div>
+      <div class="add-pane" data-pane="magnet">
+        <label class="field-label" for="magnet">Magnet links or URLs, one per line</label>
+        <textarea id="magnet" class="input" rows="4" placeholder="magnet:?xt=urn:btih:…" spellcheck="false"></textarea>
+      </div>
+      <div class="add-pane" data-pane="file" hidden>
+        <label class="drop" id="drop">
+          <input type="file" id="fileInput" accept=".torrent,application/x-bittorrent" multiple hidden>
+          <span class="drop-ic" data-icon="upload"></span>
+          <span id="dropText">Drop .torrent files here, or <u>browse</u></span>
+        </label>
+      </div>
+      <label class="field-label" for="dir">Download folder</label>
+      <div class="dir-field">
+        <span class="dir-prefix">/downloads/</span>
+        <input id="dir" class="input" list="dirList" autocomplete="off" spellcheck="false" placeholder="complete">
+        <datalist id="dirList"></datalist>
+      </div>
+      <div class="hint" id="freeSpace">&nbsp;</div>
+      <label class="check-row"><input type="checkbox" class="cb" id="startNow" checked> Start downloading right away</label>
+    </div>
+    <footer class="dlg-foot">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary" id="addSubmit">Add</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Remove -->
+<dialog class="dialog small" id="removeDlg">
+  <form method="dialog" id="removeForm">
+    <header class="dlg-head"><h2>Remove torrents</h2><button type="button" class="btn icon-only" data-close><span class="ic" data-icon="close"></span></button></header>
+    <div class="dlg-body">
+      <p id="removeText"></p>
+      <label class="check-row"><input type="checkbox" class="cb" id="removeData"> Also delete the downloaded files</label>
+      <p class="hint warn" id="removeWarn" hidden>The files are deleted from the NAS and can't be recovered.</p>
+    </div>
+    <footer class="dlg-foot">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn danger">Remove</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Speed limits -->
+<dialog class="dialog small" id="limitsDlg">
+  <form method="dialog" id="limitsForm">
+    <header class="dlg-head"><h2>Speed limits</h2><button type="button" class="btn icon-only" data-close><span class="ic" data-icon="close"></span></button></header>
+    <div class="dlg-body">
+      <div class="section-title">Normal limits</div>
+      <div class="limit-row">
+        <label class="check-row"><input type="checkbox" class="switch" id="limDownOn"> Download</label>
+        <div class="unit-input"><input type="number" min="0" class="input" id="limDown"><span>KB/s</span></div>
+      </div>
+      <div class="limit-row">
+        <label class="check-row"><input type="checkbox" class="switch" id="limUpOn"> Upload</label>
+        <div class="unit-input"><input type="number" min="0" class="input" id="limUp"><span>KB/s</span></div>
+      </div>
+      <div class="section-title"><span class="ic" data-icon="turtle"></span> Turtle mode limits</div>
+      <div class="limit-row">
+        <span class="row-label">Download</span>
+        <div class="unit-input"><input type="number" min="0" class="input" id="altDown"><span>KB/s</span></div>
+      </div>
+      <div class="limit-row">
+        <span class="row-label">Upload</span>
+        <div class="unit-input"><input type="number" min="0" class="input" id="altUp"><span>KB/s</span></div>
+      </div>
+    </div>
+    <footer class="dlg-foot">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Login (only when the browser didn't already send credentials) -->
+<dialog class="dialog small" id="loginDlg">
+  <form method="dialog" id="loginForm">
+    <header class="dlg-head"><h2>Sign in</h2></header>
+    <div class="dlg-body">
+      <p class="hint">Enter the web UI username and password you set when installing Transmission.</p>
+      <label class="field-label" for="lUser">Username</label>
+      <input id="lUser" class="input" autocomplete="username">
+      <label class="field-label" for="lPass">Password</label>
+      <input id="lPass" class="input" type="password" autocomplete="current-password">
+      <p class="hint warn" id="loginErr" hidden>Wrong username or password.</p>
+    </div>
+    <footer class="dlg-foot"><button type="submit" class="btn primary">Sign in</button></footer>
+  </form>
+</dialog>
+
+<div class="drop-overlay" id="dropOverlay" hidden><div>Drop .torrent files to add them</div></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

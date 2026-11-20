@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 IMAGE=davidsanchez/transmission:4.1.4-r0-ls370-ug1
 OUT=rootfs_amd64/images/transmission-4.1.4-r0-ls370-ug1.tar
-docker build --platform linux/amd64 -t "$IMAGE" image
+docker build --platform linux/amd64 --build-context ui=ui -t "$IMAGE" image
 mkdir -p "$(dirname "$OUT")"
 rm -f rootfs_amd64/images/*.tar
 docker save --platform linux/amd64 -o "$OUT" "$IMAGE"

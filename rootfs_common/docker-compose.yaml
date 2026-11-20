@@ -7,6 +7,7 @@ services:
       - USER=${RPC_USER}
       - PASS=${RPC_PASS}
       - PEERPORT=51413
+      - TRANSMISSION_WEB_HOME=/ui
     volumes:
       - ./config:/config
       - ${DOWNLOAD_DIR}:/downloads
