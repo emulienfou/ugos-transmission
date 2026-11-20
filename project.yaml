@@ -1,0 +1,20 @@
+spec_version: "2.1"
+app_id: com.davidsanchez.transmission
+version: 4.1.4
+support_arch:
+  - amd64
+product_series:
+  - nasync
+is_docker_app: true
+port: 9091
+open_type: tab
+tag_types:
+  - download
+depend_fw_version: 1.13.0.0000
+depend_docker_version: 1.7.0.0000
+i18n:
+  en-US:
+    name: Transmission
+    description: Fast, easy and free BitTorrent client with a web interface
+    author: David Sanchez
+    official: https://transmissionbt.com/
