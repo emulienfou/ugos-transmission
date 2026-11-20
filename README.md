@@ -52,12 +52,18 @@ The choice is logged as `[ug-entrypoint] … writable as UID:GID`. Files are cre
 
 ## Build it yourself
 
-Requirements: Docker, and UGREEN's `ugcli` (needs a UGREEN developer account and an authorized device).
+Requirements: Docker, and UGREEN's [`ugcli`](https://developer.ugnas.com/en/doc/tools/ugcli.html).
 
 ```bash
-./scripts/build-image.sh                  # builds the amd64 image and saves rootfs_amd64/images/*.tar
-ugcli check && ugcli pack --arch amd64 --build <n>   # writes build_dir/pkgs/upk/*.upk
+./scripts/build-image.sh   # builds the amd64 image and saves rootfs_amd64/images/*.tar
+./scripts/pack.sh          # ugcli check + pack with the next build number (from BUILD); writes build_dir/pkgs/upk/*.upk
 ```
+
+Commit `BUILD` after packing: UGOS only upgrades in place when the build number is higher.
+
+### Automatic releases
+
+[`.github/workflows/auto-release.yml`](.github/workflows/auto-release.yml) runs daily. When linuxserver publishes a newer stable `lscr.io/linuxserver/transmission` tag, it moves the app to it (`scripts/upstream.sh apply`), builds the image, packs the next build, commits, and publishes the `.upk` as a release. Run it manually with **force** to release wrapper changes without an upstream update. After changing the image yourself, bump the `-ugN` suffix of the wrapper tag.
 
 | Path | What it is |
 |---|---|
@@ -65,7 +71,7 @@ ugcli check && ugcli pack --arch amd64 --build <n>   # writes build_dir/pkgs/upk
 | `rootfs_common/docker-compose.yaml` | Compose file UGOS runs |
 | `image/` | Wrapper image: `ug-entrypoint.sh` (user detection), disabled share chown, web UI |
 | `ui/` | The web UI (plain HTML/CSS/JS, no build step) |
-| `scripts/` | Image build and icon rendering |
+| `scripts/` | Image build, packing, upstream tag updates, icon rendering |
 | `docs/screenshots/` | Screenshots above |
 
 ## Credits and licenses

@@ -1,0 +1,139 @@
+name: Auto-release UPK
+
+# Daily: if linuxserver published a newer stable Transmission image, move the app
+# to it, build the amd64 image, pack a UPK with a higher build number, commit,
+# and publish it as a GitHub release. Users still install it manually via
+# App Center > Manual Install.
+on:
+  schedule:
+    - cron: "17 5 * * *" # 05:17 UTC daily
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Pack and release even without a new upstream tag (e.g. after a wrapper change)"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Only report what would happen; no commit or release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+env:
+  UGCLI_VERSION: v1.1.0.25
+  # Optional: set repo variable UGCLI_SHA256 to pin the downloaded binary.
+  UGCLI_SHA256: ${{ vars.UGCLI_SHA256 }}
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check upstream tag
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          current=$(scripts/upstream.sh current)
+          latest=$(scripts/upstream.sh latest)
+          [ -n "$latest" ] || { echo "::error::no stable upstream tag found"; exit 1; }
+          if scripts/upstream.sh newer "$latest" "$current"; then update=true; else update=false; fi
+          echo "current=$current latest=$latest update=$update force=${{ inputs.force || false }}"
+          {
+            echo "current=$current"
+            echo "latest=$latest"
+            echo "update=$update"
+            if [ "$update" = true ] || [ "${{ inputs.force || false }}" = true ]; then echo "go=true"; else echo "go=false"; fi
+          } >> "$GITHUB_OUTPUT"
+          if [ "$update" = true ]; then
+            echo "### Update: \`$current\` → \`$latest\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### No update (on \`$current\`, newest is \`$latest\`)" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Apply new upstream tag
+        if: steps.check.outputs.update == 'true'
+        run: scripts/upstream.sh apply "${{ steps.check.outputs.latest }}"
+
+      - name: Last released build
+        if: steps.check.outputs.go == 'true'
+        id: prev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Highest build among existing releases (tags v<x.y.z>.<NNNN>), so the
+          # build number can't go backwards even if BUILD is stale.
+          max=$(gh release list --limit 100 --json tagName --jq '.[].tagName' |
+            sed -nE 's/^v[0-9]+\.[0-9]+\.[0-9]+\.0*([0-9]+)$/\1/p' | sort -n | tail -1)
+          echo "max=${max:-0}" >> "$GITHUB_OUTPUT"
+          echo "BUILD file: $(cat BUILD), latest release build: ${max:-none}"
+
+      - name: Dry run summary
+        if: steps.check.outputs.go == 'true' && inputs.dry_run
+        run: |
+          git diff
+          echo "Would pack build > max($(cat BUILD), ${{ steps.prev.outputs.max }}) and release it."
+
+      - name: Build image
+        if: steps.check.outputs.go == 'true' && !inputs.dry_run
+        run: scripts/build-image.sh
+
+      - name: Install ugcli
+        if: steps.check.outputs.go == 'true' && !inputs.dry_run
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/ugcli" \
+            "https://osswaf.ugnas.com/pro/ugcli/download/ugcli-${UGCLI_VERSION}-linux-amd64"
+          sha256sum "$RUNNER_TEMP/bin/ugcli"
+          if [ -n "$UGCLI_SHA256" ]; then
+            echo "$UGCLI_SHA256  $RUNNER_TEMP/bin/ugcli" | sha256sum -c -
+          fi
+          chmod +x "$RUNNER_TEMP/bin/ugcli"
+          "$RUNNER_TEMP/bin/ugcli" --version
+
+      - name: Pack UPK
+        if: steps.check.outputs.go == 'true' && !inputs.dry_run
+        id: pack
+        env:
+          UGCLI: ${{ runner.temp }}/bin/ugcli
+        run: scripts/pack.sh "${{ steps.prev.outputs.max }}"
+
+      - name: Commit
+        if: steps.check.outputs.go == 'true' && !inputs.dry_run
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add BUILD image/Dockerfile scripts/build-image.sh rootfs_common/docker-compose.yaml project.yaml
+          if [ "${{ steps.check.outputs.update }}" = true ]; then
+            msg="Update Transmission to ${{ steps.check.outputs.latest }} (build ${{ steps.pack.outputs.build }})"
+          else
+            msg="Release build ${{ steps.pack.outputs.build }}"
+          fi
+          git commit -m "$msg"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Publish release
+        if: steps.check.outputs.go == 'true' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${{ steps.pack.outputs.version }}"
+          b=$(printf %04d "${{ steps.pack.outputs.build }}")
+          base=$(scripts/upstream.sh current)
+          cat > "$RUNNER_TEMP/notes.md" <<EOF
+          Transmission $v, build $b, based on \`lscr.io/linuxserver/transmission:$base\`.
+
+          Install: download the \`.upk\` below, then on the NAS open **App Center > Manual Install**.
+          A higher build number upgrades in place and keeps your torrents and settings.
+          EOF
+          gh release create "v$v.$b" "${{ steps.pack.outputs.upk }}" \
+            --target "$(git rev-parse HEAD)" \
+            --title "Transmission $v (build $b)" \
+            --notes-file "$RUNNER_TEMP/notes.md"
