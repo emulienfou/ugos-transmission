@@ -50,15 +50,48 @@ if [ -z "${PUID:-}" ] || [ -z "${PGID:-}" ]; then
   : "${PUID:=${chosen%:*}}"
   : "${PGID:=${chosen#*:}}"
   export PUID PGID
+fi
 
-  # Warn about subfolders Transmission uses that this user can't write to
-  # (e.g. an 'incomplete' folder left by another app).
-  for sub in complete incomplete; do
-    if [ -d "$D/$sub" ] && ! s6-applyuidgid -u "$PUID" -g "$PGID" -G "$PGID" test -w "$D/$sub"; then
-      log "WARNING: $D/$sub is owned by $(stat -c '%u:%g' "$D/$sub") and isn't writable as $PUID:$PGID."
-      log "WARNING: rename or remove it, or pick another folder in Settings > Downloading."
+# --- Settings fixes (before Transmission starts) -----------------------------
+# The linuxserver defaults assume /downloads/incomplete, /downloads/complete and
+# /watch can be used. On a shared UGOS folder they may belong to another app or
+# not exist, which leads to "No data found!" errors and log noise.
+S=/config/settings.json
+umask "${UMASK:-022}"
+as_user() { s6-applyuidgid -u "$PUID" -g "$PGID" -G "$PGID" "$@"; }
+jset() { # key json-value
+  jq --argjson v "$2" --arg k "$1" '.[$k] = $v' "$S" > "$S.ug-tmp" && mv "$S.ug-tmp" "$S"
+}
+jget() { jq -r --arg k "$1" '.[$k] // empty' "$S"; }
+
+if [ -d /config ]; then
+  [ -f "$S" ] || cp /defaults/settings.json "$S"
+
+  # Incomplete folder: must be writable, or downloads fail with "No data found!".
+  if [ "$(jget incomplete-dir-enabled)" = "true" ]; then
+    inc=$(jget incomplete-dir)
+    if [ -n "$inc" ] && [ -d "$inc" ] && ! as_user test -w "$inc"; then
+      alt="$D/incomplete-transmission"
+      if as_user mkdir -p "$alt" 2>/dev/null && as_user test -w "$alt"; then
+        log "$inc is owned by $(stat -c '%u:%g' "$inc") and isn't writable as $PUID:$PGID; using $alt for unfinished downloads instead."
+        jset incomplete-dir "\"$alt\""
+      else
+        log "$inc isn't writable as $PUID:$PGID; turning off the incomplete folder."
+        jset incomplete-dir-enabled false
+      fi
     fi
-  done
+  fi
+
+  # Download folder: create it up front so startup checks don't complain.
+  dl=$(jget download-dir)
+  if [ -n "$dl" ] && [ ! -d "$dl" ]; then
+    as_user mkdir -p "$dl" 2>/dev/null && log "created $dl"
+  fi
+
+  # Watch folder: the package doesn't mount one, so turn it off if it's missing.
+  if [ "$(jget watch-dir-enabled)" = "true" ] && [ ! -d "$(jget watch-dir)" ]; then
+    jset watch-dir-enabled false
+  fi
 fi
 
 # Never expose the web UI / RPC without a login (UGREEN review rule).

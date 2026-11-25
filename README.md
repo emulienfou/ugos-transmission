@@ -46,6 +46,8 @@ UGOS shares often have a root-owned top folder with ACLs, so at startup the cont
 
 The choice is logged as `[ug-entrypoint] … writable as UID:GID`. Files are created with `UMASK=002`, so other apps in the `users` group can import them.
 
+If the download folder already has an `incomplete` folder this user can't write to (for example one left by another download client), Transmission keeps unfinished downloads in `incomplete-transmission` instead, and logs the switch. Folders are never re-owned.
+
 ### Using it with Sonarr, Radarr and similar apps
 
 - In the *arr app's Transmission download client, leave **Directory** empty and set a **Category** (e.g. `tv-sonarr`). Downloads then go to a `<category>` subfolder of Transmission's download folder (Settings › Downloading).

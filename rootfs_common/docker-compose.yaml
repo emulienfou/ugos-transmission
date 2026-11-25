@@ -1,6 +1,6 @@
 services:
   transmission:
-    image: davidsanchez/transmission:4.1.4-r0-ls370-ug8
+    image: davidsanchez/transmission:4.1.4-r0-ls370-ug9
     restart: unless-stopped
     environment:
       - TZ=${TZ}
