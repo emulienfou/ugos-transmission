@@ -1,4 +1,4 @@
-FROM lscr.io/linuxserver/transmission:4.1.4-r0-ls370
+FROM lscr.io/linuxserver/transmission:4.1.4-r0-ls371
 # Never chown the user's NAS shares: ug-entrypoint.sh runs Transmission as the
 # folder's owner instead, and root-owned UGOS shares rely on their ACLs.
 RUN sed -i -E 's#lsiown abc:abc (/downloads|/watch)#: skip-chown \1#' /etc/s6-overlay/s6-rc.d/init-transmission-config/run \
