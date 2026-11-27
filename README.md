@@ -33,7 +33,7 @@ Updates install the same way. A higher build number upgrades in place and keeps 
 
 | Port | Use |
 |---|---|
-| 9091/tcp | Web UI and RPC |
+| 9091/tcp | Web UI and RPC (served by a small nginx in front of Transmission, which listens on 9092 inside the container only) |
 | 51413/tcp+udp | Incoming peers: forward it on your router for faster downloads |
 
 ### Which user Transmission runs as
@@ -73,10 +73,10 @@ Commit `BUILD` after packing: UGOS only upgrades in place when the build number 
 |---|---|
 | `project.yaml` | UGOS app metadata and install parameters |
 | `rootfs_common/docker-compose.yaml` | Compose file UGOS runs |
-| `image/` | Wrapper image: `ug-entrypoint.sh` (user detection), disabled share chown, web UI |
+| `image/` | Wrapper image: `ug-entrypoint.sh` (user and folder checks), nginx front proxy, disabled share chown, web UI |
 | `ui/` | The web UI (plain HTML/CSS/JS, no build step) |
 | `scripts/` | Image build, packing, upstream tag updates, icon rendering |
-| `docs/screenshots/` | Screenshots above |
+| `docs/` | Help, support, privacy policy and license pages (GitHub Pages), screenshots |
 
 ## Credits and licenses
 

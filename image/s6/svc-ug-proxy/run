@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv sh
+# Front web server on 9091: serves the web UI without a login, so the
+# privacy/license consent dialog and the in-page sign-in can show first,
+# and forwards RPC to Transmission on the internal port 9092.
+exec nginx -c /etc/ug-nginx.conf -g 'daemon off;'

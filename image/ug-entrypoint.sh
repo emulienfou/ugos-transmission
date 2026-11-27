@@ -88,6 +88,9 @@ if [ -d /config ]; then
     as_user mkdir -p "$dl" 2>/dev/null && log "created $dl"
   fi
 
+  # Transmission listens on 9092 inside the container; nginx serves 9091.
+  [ "$(jget rpc-port)" = "9092" ] || jset rpc-port 9092
+
   # Watch folder: the package doesn't mount one, so turn it off if it's missing.
   if [ "$(jget watch-dir-enabled)" = "true" ] && [ ! -d "$(jget watch-dir)" ]; then
     jset watch-dir-enabled false

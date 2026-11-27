@@ -12,12 +12,27 @@ tag_types:
   - download
 depend_fw_version: 1.13.0.0000
 depend_docker_version: 1.7.0.0000
+privacy_policy_link:
+  - https://emulienfou.github.io/ugos-transmission/privacy.html
+license_agreement_link:
+  - https://emulienfou.github.io/ugos-transmission/license.html
+source_code_link:
+  - https://github.com/emulienfou/ugos-transmission
+technical_support_link:
+  - https://emulienfou.github.io/ugos-transmission/support.html
 i18n:
   en-US:
     name: Transmission for UGOS
-    description: Unofficial package of the Transmission BitTorrent client, with a web interface designed for UGOS
+    description: >-
+      Fast, lightweight BitTorrent client for your NAS. Add torrents by magnet link or file,
+      follow progress, and manage speed limits, queues, seeding and privacy settings from a
+      web interface designed for UGOS, with light and dark themes and a phone layout. Works
+      with Sonarr and Radarr. Unofficial package of the open-source Transmission client.
     author: David Sanchez
     official: https://github.com/emulienfou/ugos-transmission
+    help: https://emulienfou.github.io/ugos-transmission/help.html
+    publisher: David Sanchez
+    publisher_link: https://davidsanchez.me
 parameters:
   - key: DOWNLOAD_DIR
     type: path
@@ -28,6 +43,7 @@ parameters:
         description: Shared folder where Transmission saves downloads
   - key: RPC_USER
     required: true
+    changeable: true
     type: string
     i18n:
       en-US:
@@ -35,6 +51,7 @@ parameters:
         description: Username to sign in to the web UI
   - key: RPC_PASS
     required: true
+    changeable: true
     type: password
     i18n:
       en-US:

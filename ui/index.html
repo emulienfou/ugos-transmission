@@ -162,6 +162,23 @@
 </dialog>
 
 <!-- Login (only when the browser didn't already send credentials) -->
+<dialog class="dialog small" id="consentDlg">
+  <form method="dialog" id="consentForm">
+    <header class="dlg-head"><h2>Welcome to Transmission for UGOS</h2></header>
+    <div class="dlg-body">
+      <p class="hint">Before you start, please read and accept the
+        <a href="https://emulienfou.github.io/ugos-transmission/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and the
+        <a href="https://emulienfou.github.io/ugos-transmission/license.html" target="_blank" rel="noopener">License Agreement</a>.</p>
+      <p class="hint">In short: the app collects no personal information. BitTorrent shares your IP address with the peers and trackers of the torrents you add. The app is free software under the GPL-3.0 license.</p>
+      <p class="hint warn" id="consentErr" hidden>You need to accept the Privacy Policy and License Agreement to use the app.</p>
+    </div>
+    <footer class="dlg-foot">
+      <button type="button" class="btn" id="consentNo">Decline</button>
+      <button type="submit" class="btn primary" id="consentYes">Agree and continue</button>
+    </footer>
+  </form>
+</dialog>
+
 <dialog class="dialog small" id="loginDlg">
   <form method="dialog" id="loginForm">
     <header class="dlg-head"><h2>Sign in</h2></header>

@@ -2,7 +2,7 @@
 // Talks to Transmission's RPC on the same origin (legacy method names, which
 // Transmission 4.x still accepts).
 
-const RPC_URL = '/transmission/rpc';
+const RPC_URL = '/transmission/ug-rpc';
 const BASE_DIR = '/downloads';
 let titleSpeeds = (() => { try { return localStorage.getItem('ug-title-speeds') !== '0'; } catch { return true; } })();
 let pollMs = (() => { try { const r = Number(localStorage.getItem('ug-refresh')); return r >= 1000 ? r : 2000; } catch { return 2000; } })();
@@ -72,7 +72,33 @@ function toast(msg, isErr = false) {
 let sessionId = null;
 let authHeader = null;
 
+// First-launch consent to the Privacy Policy and License Agreement (UGREEN
+// review rule). Nothing is sent to Transmission, including the login, until
+// the user agrees. Bump CONSENT_VERSION when either document changes.
+const CONSENT_VERSION = '2026-11-27';
+let consentPromise = null;
+function ensureConsent() {
+  try { if (localStorage.getItem('ug-consent') === CONSENT_VERSION) return Promise.resolve(); } catch {}
+  if (consentPromise) return consentPromise;
+  const dlg = $('#consentDlg');
+  consentPromise = new Promise((resolve) => {
+    $('#consentErr').hidden = true;
+    $('#consentNo').onclick = () => { $('#consentErr').hidden = false; };
+    $('#consentForm').onsubmit = (e) => {
+      e.preventDefault();
+      try { localStorage.setItem('ug-consent', CONSENT_VERSION); } catch {}
+      dlg.close();
+      consentPromise = null;
+      resolve();
+    };
+    dlg.addEventListener('cancel', (e) => e.preventDefault());
+    dlg.showModal();
+  });
+  return consentPromise;
+}
+
 async function rpc(method, args = {}) {
+  await ensureConsent();
   for (let attempt = 0; attempt < 6; attempt++) {
     const headers = { 'Content-Type': 'application/json' };
     if (sessionId) headers['X-Transmission-Session-Id'] = sessionId;
@@ -722,14 +748,15 @@ function aboutHtml() {
     </dl>
     <div class="section-title">This app</div>
     <dl class="kv set-kv">
+      <dt>Developer</dt><dd><a href="https://davidsanchez.me" target="_blank" rel="noopener">David Sanchez</a></dd>
+      <dt>Help</dt><dd><a href="https://emulienfou.github.io/ugos-transmission/help.html" target="_blank" rel="noopener">Getting started</a></dd>
+      <dt>Support</dt><dd><a href="https://emulienfou.github.io/ugos-transmission/support.html" target="_blank" rel="noopener">Technical support</a></dd>
+      <dt>Privacy</dt><dd><a href="https://emulienfou.github.io/ugos-transmission/privacy.html" target="_blank" rel="noopener">Privacy Policy</a></dd>
+      <dt>License</dt><dd><a href="https://emulienfou.github.io/ugos-transmission/license.html" target="_blank" rel="noopener">License Agreement</a> (GPL-3.0)</dd>
       <dt>Source code</dt><dd><a href="https://github.com/emulienfou/ugos-transmission" target="_blank" rel="noopener">github.com/emulienfou/ugos-transmission</a></dd>
-      <dt>Author</dt><dd><a href="https://davidsanchez.me" target="_blank" rel="noopener">emulienfou</a></dd>
-      <dt>License</dt><dd><a href="https://github.com/emulienfou/ugos-transmission/blob/main/LICENSE" target="_blank" rel="noopener">GPL-3.0</a></dd>
-      <dt>Privacy</dt><dd><a href="https://emulienfou.github.io/ugos-transmission/privacy.html" target="_blank" rel="noopener">Privacy policy</a></dd>
-      <dt>Issues</dt><dd><a href="https://github.com/emulienfou/ugos-transmission/issues" target="_blank" rel="noopener">Report a problem</a></dd>
     </dl>
     <div class="section-title">Web UI login</div>
-    <p class="set-p">The username and password are set when you install the app in App Center (<i>Web UI username</i> and <i>Web UI password</i>). They can’t be changed from here.</p>
+    <p class="set-p">The username and password are set when you install the app in App Center (<i>Web UI username</i> and <i>Web UI password</i>). To change them, open UGOS Control Panel and go to this app’s configuration page.</p>
     <div class="section-title">Not available on the NAS</div>
     <p class="set-p">Desktop-only options (tray icon, notifications, sounds, watch folder, clipboard detection) don’t apply to a NAS service. Scripts that run when a download finishes aren’t offered either, because they would run inside the container.</p>
     <p class="set-p"><a href="https://transmissionbt.com/" target="_blank" rel="noopener">transmissionbt.com</a></p>`;
