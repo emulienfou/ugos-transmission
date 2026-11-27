@@ -1,7 +1,7 @@
 services:
   transmission:
-    image: davidsanchez/transmission:4.1.4-r0-ls371-ug2
-    restart: unless-stopped
+    image: davidsanchez/transmission:4.1.4-r0-ls371-ug3
+    restart: always
     environment:
       - TZ=${TZ}
       - USER=${RPC_USER}

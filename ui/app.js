@@ -75,7 +75,7 @@ let authHeader = null;
 // First-launch consent to the Privacy Policy and License Agreement (UGREEN
 // review rule). Nothing is sent to Transmission, including the login, until
 // the user agrees. Bump CONSENT_VERSION when either document changes.
-const CONSENT_VERSION = '2026-11-27';
+const CONSENT_VERSION = '2026-11-27.2';
 let consentPromise = null;
 function ensureConsent() {
   try { if (localStorage.getItem('ug-consent') === CONSENT_VERSION) return Promise.resolve(); } catch {}
